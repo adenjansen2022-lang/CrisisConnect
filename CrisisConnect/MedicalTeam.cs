@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace CrisisConnect
 {
+    //INHERITANCE AND POLYMORPHISM
     internal class MedicalTeam:CrisisRescueSquad
     {
         public int NumDoctors {  get; set; }

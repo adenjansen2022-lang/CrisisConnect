@@ -44,11 +44,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CrisisRescueSquad.cs" />
+    <Compile Include="DroneTeam.cs" />
     <Compile Include="MedicalTeam.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecalistTeam.cs" />
-    <Compile Include="SupplyVehicle.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -10,7 +10,26 @@ namespace CrisisConnect
     {
         static void Main(string[] args)
         {
+            /*
+            RESOURCE SQUAD:
+                team name
+                disaster id
+                status
+                vehicle type
+                location
 
+            Medical team:
+                Number of doctors
+                Number of ambulances
+
+            Specalist team:
+                type of speclaist
+                number of specailist
+
+            Drone team:
+                Drone count
+                number of drones
+         */
         }
     }
 }
