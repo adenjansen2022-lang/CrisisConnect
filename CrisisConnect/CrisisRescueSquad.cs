@@ -6,18 +6,20 @@ using System.Threading.Tasks;
 
 namespace CrisisConnect
 {
-    abstract class CrisisResources
+    abstract class CrisisRescueSquad
     {
-        public string name {  get; set; }
+        public string teamName {  get; set; }
         public int disasterID { get; set; }
         public string status { get; set; }//is the sqaud availabel or are they being deployed are they busy with maintenace
+        public string TypeOfVehicle { get; set; }
         public string location {  get; set; }
 
-        public CrisisResources(string n, int dID, string s, string l)
+        public CrisisRescueSquad(string tn, int dID, string s, string tv,string l)
         {
-            name = n;
+            teamName = tn;
             disasterID = dID;
             status = s;
+            TypeOfVehicle = tv;
             location = l;
         }
 

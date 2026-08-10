@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace CrisisConnect
 {
-    internal class MedicalTeam:CrisisResources
+    internal class MedicalTeam:CrisisRescueSquad
     {
         public int NumDoctors {  get; set; }
         public int NumAmbulances {  get; set; }
 
-        public MedicalTeam(string n, int dID, string s, string l, int ND, int NA) : base(n, dID, s, l)
+        public MedicalTeam(string tn, int dID, string s,string tv, string l, int ND, int NA) : base(tn, dID, s,tv, l)
         {
             NumAmbulances = NA;
             NumDoctors = ND;
@@ -20,7 +20,7 @@ namespace CrisisConnect
 
         public override string getTeamDetail()
         {
-            return $"Medical team ID: {disasterID} | Status: {status} | Location: {location} | Name: {name} | Doctors : {NumDoctors} | Ambulances: {NumAmbulances}";
+            return $"'MEDICAL TEAM'  ID: {disasterID} | Doctors : {NumDoctors} | Ambulances: {NumAmbulances} |  Status: {status} | Location: {location} | Name: {teamName} | Type of vehicle: {TypeOfVehicle} ";
         }
     }
 }

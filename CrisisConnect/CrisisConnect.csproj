@@ -43,12 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DisasterCoordinator.cs" />
-    <Compile Include="CrisisResources.cs" />
+    <Compile Include="CrisisRescueSquad.cs" />
     <Compile Include="MedicalTeam.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RescueSquad.cs" />
+    <Compile Include="SpecalistTeam.cs" />
     <Compile Include="SupplyVehicle.cs" />
   </ItemGroup>
   <ItemGroup>
