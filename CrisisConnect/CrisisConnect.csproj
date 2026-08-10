@@ -45,6 +45,8 @@
   <ItemGroup>
     <Compile Include="CrisisRescueSquad.cs" />
     <Compile Include="DroneTeam.cs" />
+    <Compile Include="iDispatchAndRecall.cs" />
+    <Compile Include="iStatusReport.cs" />
     <Compile Include="MedicalTeam.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace CrisisConnect
 {
-    internal class DroneTeam:CrisisRescueSquad
+    //INHERITANCE AND POLYMORPHISM AND ENCAPSULATION
+    internal class DroneTeam:CrisisRescueSquad, iDispatchAndRecall, iStatusReport
     {
-        public int droneCount 
+        private int droneCount;
+        public int DroneCount 
         {
             get { return droneCount; }
             set
@@ -20,17 +23,19 @@ namespace CrisisConnect
                 droneCount = value;
             }
         }
-        private int droneBatteryLevelPercentage;
 
-        public int DoneBatteryPercent
+        private int droneBatteryLevelPercentage;//private because we should not be able to change the battery life as is drains on its own
+
+        public int DroneBatteryPercent
         {
             get { return droneBatteryLevelPercentage; }
             set
             {
-                if( droneBatteryLevelPercentage > 0 || droneBatteryLevelPercentage < 100)
+                if (value > 0 || value < 100)
                 {
                     throw new ArgumentException("Bettery percentage level is invlaide enter a number between 0 and 100");
                 }
+                droneBatteryLevelPercentage = value;
             }
         }
 
@@ -43,6 +48,28 @@ namespace CrisisConnect
         public override string getTeamDetail()
         {
             return $"'DRONE TEAM' ID: {disasterID} | Number of drones : {droneCount} | drone battery %: {droneBatteryLevelPercentage} | Status: {status} | Location: {location} | Name: {teamName}";
+        }
+
+        public void dispatch(string targetLocation)
+        {
+            if(droneBatteryLevelPercentage < 20) 
+            {
+                throw new InvalidOperationException($"Cannot dispatch Drone Team '{teamName}'. Battery too low ({droneBatteryLevelPercentage}%).");
+            }
+            status = "Deployed";
+            location = targetLocation;
+            Console.WriteLine($"'DISPATCH' Drone Team for '{teamName}' launched toward {targetLocation}.");
+        }
+
+        public void recall()
+        {
+            status = "Available";
+            Console.WriteLine($"'RECALL' Drone Team for '{teamName}' returning to charging dock.");
+        }
+
+        public string Report()
+        {
+            return $"Drone Team '{teamName}' - Drones Active: {droneCount} | Battery: {droneBatteryLevelPercentage}%";
         }
     }
 }
