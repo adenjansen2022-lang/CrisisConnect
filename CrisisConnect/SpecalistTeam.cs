@@ -24,15 +24,15 @@ namespace CrisisConnect
             }
         }
 
-        public SpecalistTeam(string tn, int dID, string s, string tv,string l, string sp, int spC) : base(tn, dID, s,tv, l)
+        public SpecalistTeam(string tn, int dID,string los, string s, string tv,string l, string sp, int spC) : base(tn, dID,los, s,tv, l)
         {
             Typespecialist = sp;
-            specCount = spC;
+            specialistCount = spC;
         }
         //require a specialist team incase we have fire, floods or road accident, clean up squad or rock slides
         public override string getTeamDetail()
         {
-            return $"'RESCUE SQUAD' ID: {disasterID} | Specailist : {Typespecialist} | Number of specialsit: {specCount} | Status: {status} | Location: {location} | Name: {teamName} ";
+            return $"'RESCUE SQUAD' ID: {disasterTeamID} | Specailist : {Typespecialist} | Number of specialsit: {specialistCount} | Status: {status} | Severity:{LevelOfSeverity} | Location: {location} | Name: {teamName} ";
         }
 
         public void dispatch(string targetLocation)
@@ -40,13 +40,13 @@ namespace CrisisConnect
             
             status = "Deployed";
             location = targetLocation;
-            Console.WriteLine($"'DISPATCH' {Typespecialist} Specailist Team for '{teamName}' launched toward {targetLocation}.");
+            Console.WriteLine($"'DISPATCH' {Typespecialist} Specailist Team  '{teamName}' launched toward {targetLocation}.");
         }
 
         public void recall()
         {
             status = "Available";
-            Console.WriteLine($"'RECALL' {Typespecialist} Specalist Team for '{teamName}' returning to charging dock.");
+            Console.WriteLine($"'RECALL' {Typespecialist} Specalist Team '{teamName}' returning to charging dock.");
         }
     }
 }

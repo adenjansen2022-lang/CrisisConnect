@@ -9,6 +9,6 @@ namespace CrisisConnect
     //INTERFACE
     interface iStatusReport
     {
-        void Report();
+        string Report();
     }
 }

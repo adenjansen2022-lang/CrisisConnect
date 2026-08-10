@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace CrisisConnect
 {
     //INHERITANCE AND POLYMORPHISM AND ENCAPSULATION
-    internal class MedicalTeam:CrisisRescueSquad,iDispatchAndRecall
+    internal class MedicalTeam:CrisisRescueSquad,iDispatchAndRecall, iStatusReport
     {
         private int numDoc;
         private int numAmb;
@@ -37,26 +37,34 @@ namespace CrisisConnect
             }
         }
 
-        public MedicalTeam(string tn, int dID, string s,string tv, string l, int ND, int NA) : base(tn, dID, s,tv, l)
+        public MedicalTeam(string tn, int dID, string los, string s,string tv, string l, int ND, int NA) : base(tn, dID, los, s,tv, l)
         {
-            numDoc = NA;
-            numAmb = ND;
+            NumDoctors = NA;
+            NumAmbulances = ND;
         }
 
         public override string getTeamDetail()
         {
-            return $"'MEDICAL TEAM'  ID: {disasterID} | Doctors : {numDoc} | Ambulances: {numAmb} |  Status: {status} | Location: {location} | Name: {teamName} | Type of vehicle: {TypeOfVehicle} ";
+            return $"'MEDICAL TEAM'  ID: {disasterTeamID} | Doctors : {NumDoctors} | Ambulances: {NumAmbulances} |  Status: {status} | Severity:{LevelOfSeverity} |Location: {location} | Name: {teamName} | Type of vehicle: {TypeOfVehicle} ";
         }
 
         public void dispatch(string targetLocation)
         {
-
+            status = "Deployed";
+            location = targetLocation;
+            Console.WriteLine($"'DISPATCH' Medical Team '{teamName}' dispatched to {targetLocation} with {NumAmbulances} ambulances.");
         }
 
-        //recall is not being used but is still needed else it will throw an error if the method isnt called
+     
         public void recall()
         {
+            status = "Available";
+            Console.WriteLine($"'RECALL' Medical Team '{teamName}' has been recalled to base.");
+        }
 
+        public string Report()
+        {
+            return $"Medical Team '{teamName}' at {location} - Status: {status} (Active Personnel: {NumDoctors} Doctors)";
         }
     }
 }

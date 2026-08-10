@@ -16,7 +16,7 @@ namespace CrisisConnect
             get { return droneCount; }
             set
             {
-                if(droneCount < 0 || droneCount > 100)
+                if(value < 0 || value > 100)
                 {
                     throw new ArgumentException("[Error], entered an invlaid number of drones, you cant have negative number of drones and no more than 100 drones deployed");
                 }
@@ -31,7 +31,7 @@ namespace CrisisConnect
             get { return droneBatteryLevelPercentage; }
             set
             {
-                if (value > 0 || value < 100)
+                if (value < 0 || value > 100)
                 {
                     throw new ArgumentException("Bettery percentage level is invlaide enter a number between 0 and 100");
                 }
@@ -39,15 +39,15 @@ namespace CrisisConnect
             }
         }
 
-        public DroneTeam(string tn, int dID, string s, string tv, string l,int dc, int dblp):base(tn, dID, s, tv, l)
+        public DroneTeam(string tn, int dID, string los, string s, string tv, string l,int dc, int dblp):base(tn, dID,los, s, tv, l)
         {
-            droneCount = dc;
-            droneBatteryLevelPercentage = dblp;
+            DroneCount = dc;
+            DroneBatteryPercent = dblp;
         }
 
         public override string getTeamDetail()
         {
-            return $"'DRONE TEAM' ID: {disasterID} | Number of drones : {droneCount} | drone battery %: {droneBatteryLevelPercentage} | Status: {status} | Location: {location} | Name: {teamName}";
+            return $"'DRONE TEAM' ID: {disasterTeamID} | Number of drones : {DroneCount} | drone battery %: {DroneBatteryPercent} | Status: {status} | Severity:{LevelOfSeverity} | Location: {location} | Name: {teamName}";
         }
 
         public void dispatch(string targetLocation)
@@ -56,15 +56,15 @@ namespace CrisisConnect
             {
                 throw new InvalidOperationException($"Cannot dispatch Drone Team '{teamName}'. Battery too low ({droneBatteryLevelPercentage}%).");
             }
-            status = "Deployed";
+            status = "Deployed";//for CRUD prevent deletion and duplicates
             location = targetLocation;
-            Console.WriteLine($"'DISPATCH' Drone Team for '{teamName}' launched toward {targetLocation}.");
+            Console.WriteLine($"'DISPATCH' Drone Team '{teamName}' launched toward {targetLocation}.");
         }
 
         public void recall()
         {
-            status = "Available";
-            Console.WriteLine($"'RECALL' Drone Team for '{teamName}' returning to charging dock.");
+            status = "Available";//need to be avalible in order to dispatch
+            Console.WriteLine($"'RECALL' Drone Team '{teamName}' returning to charging dock.");
         }
 
         public string Report()

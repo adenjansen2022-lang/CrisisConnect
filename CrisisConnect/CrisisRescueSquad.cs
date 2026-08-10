@@ -11,15 +11,17 @@ namespace CrisisConnect
     {
         
         public string teamName {  get; set; }
-        public int disasterID { get; set; }
-        public string status { get; set; }//ergency: low, medium or high proority
+        public int disasterTeamID { get; set; }
+        public string LevelOfSeverity { get; set; }//ergency: low, medium or high proority
+        public string status { get; set; }//deployed, active, maintenance, in training
         public string TypeOfVehicle { get; set; }
         public string location {  get; set; }
 
-        protected CrisisRescueSquad(string tn, int dID, string s, string tv,string l)
+        protected CrisisRescueSquad(string tn, int dID,string los, string s, string tv,string l)
         {
             teamName = tn;
-            disasterID = dID;
+            disasterTeamID = dID;
+            LevelOfSeverity = los;  
             status = s;
             TypeOfVehicle = tv;
             location = l;
