@@ -39,8 +39,8 @@ namespace CrisisConnect
 
         public MedicalTeam(string tn, int dID, string los, string s,string tv, string l, int ND, int NA) : base(tn, dID, los, s,tv, l)
         {
-            NumDoctors = NA;
-            NumAmbulances = ND;
+            NumDoctors = ND;
+            NumAmbulances = NA;
         }
 
         public override string getTeamDetail()
