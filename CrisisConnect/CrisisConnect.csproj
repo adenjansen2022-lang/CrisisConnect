@@ -43,14 +43,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConsoleLock.cs" />
     <Compile Include="CrisisRescueSquad.cs" />
+    <Compile Include="DisasterZone.cs" />
+    <Compile Include="DisasterZoneMonitor.cs" />
+    <Compile Include="DispatchProcessor.cs" />
     <Compile Include="DroneTeam.cs" />
+    <Compile Include="EmergencyGenerator.cs" />
     <Compile Include="iDispatchAndRecall.cs" />
     <Compile Include="iStatusReport.cs" />
     <Compile Include="MedicalTeam.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecalistTeam.cs" />
+    <Compile Include="SystemConcurrencyException.cs" />
+    <Compile Include="SystemLogger.cs" />
+    <Compile Include="ThreadExecutionException.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
