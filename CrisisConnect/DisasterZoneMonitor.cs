@@ -13,6 +13,11 @@ namespace CrisisConnect
         private readonly object zonelock;
         private readonly SystemLogger logger;
 
+        private readonly HashSet<int> criticalAlertedZones =
+       new HashSet<int>();
+
+        public event EmergencyAlertHandler OnCriticalAlertTriggered;
+
         public DisasterZoneMonitor(List<DisasterZone> zones, object zonelock, SystemLogger logger)
         {
             this.zones = zones;
@@ -24,38 +29,44 @@ namespace CrisisConnect
         {
             try
             {
-                while(!cancellationToken.IsCancellationRequested)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(5000, cancellationToken);
 
-                    lock(zonelock)
+                    lock (zonelock)
                     {
-                        foreach(DisasterZone zone in zones)
+                        foreach (DisasterZone zone in zones)
                         {
-                            if(!zone.ResponseDispatched && zone.ThreatLevel <100)
+                            if (!zone.ResponseDispatched && zone.ThreatLevel < 100)
                             {
                                 zone.IncreaseThreat(5);
 
                                 logger.Log($"Threat increased: Zone {zone.ZoneId}" + $"is now {zone.ThreatLevel}%.");
 
-                                lock (ConsoleLock.LockObject)
+                                // EVENT TRIGGER:
+                                // Critical emergency when threat level reaches 90%.
+                                if (zone.ThreatLevel >= 90 &&
+                                    !criticalAlertedZones.Contains(zone.ZoneId))
                                 {
-                                    Console.WriteLine($"Threat Update" +
-                                    $"===============" +
-                                    $"Zone {zone.ZoneId}:" +
-                                    $"{zone.ThreatLevel}%"); 
+                                    criticalAlertedZones.Add(zone.ZoneId);
 
+                                    OnCriticalAlertTriggered?.Invoke(
+                                        zone.ZoneId,
+                                        zone.DisasterType,
+                                        zone.Location,
+                                        zone.ThreatLevel
+                                    );
                                 }
                             }
                         }
                     }
                 }
             }
-            catch(TaskCanceledException)
+            catch (TaskCanceledException)
             {
-                
+
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.Log($"Zone monitor error: {ex.Message}");
                 throw new Exception("Disaster Zone Monitor stopped unexpectedly");

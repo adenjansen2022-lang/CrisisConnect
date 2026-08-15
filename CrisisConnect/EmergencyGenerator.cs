@@ -36,7 +36,7 @@ namespace CrisisConnect
 
         };
 
-        public EmergencyGenerator(List< DisasterZone> zones, object zonelock, SystemLogger logger)
+        public EmergencyGenerator(List<DisasterZone> zones, object zonelock, SystemLogger logger)
         {
             this.zones = zones;
             this.zonelock = zonelock;
@@ -57,28 +57,30 @@ namespace CrisisConnect
 
                     DisasterZone zone = new DisasterZone(nextZoneId++, disasterType, location, severity);
 
+                    bool zoneAdded = false;
+
                     lock (zonelock)
                     {
-                        zones.Add(zone);
+                        // Only allow a maximum of 3 unresolved emergencies at a time.
+                        int activeZones = zones.Count(z => !z.ResponseDispatched);
+
+                        if (activeZones < 3)
+                        {
+                            zones.Add(zone);
+                            zoneAdded = true;
+                        }
                     }
 
-                    logger.Log($"Emergency generated: {zone}");
-
-                    lock (ConsoleLock.LockObject)
+                    if (zoneAdded)
                     {
-                        Console.WriteLine();
-                        Console.WriteLine("======================================");
-                        Console.WriteLine("         NEW EMERGENCY GENERATED");
-                        Console.WriteLine("======================================");
-                        Console.WriteLine(zone);
+                        logger.Log($"Emergency generated: {zone}");
                     }
-
 
                 }
             }
             catch (TaskCanceledException)
-            { 
-               
+            {
+
             }
             catch (Exception ex)
             {
