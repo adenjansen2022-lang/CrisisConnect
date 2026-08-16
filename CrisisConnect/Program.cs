@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CrisisConnect
@@ -51,12 +52,33 @@ namespace CrisisConnect
                         report
          */
 
-            List<CrisisRescueSquad> team = new List<CrisisRescueSquad> ();
+            List<CrisisRescueSquad> team = new List<CrisisRescueSquad>();
+
+            List<DisasterZone> zones = new List<DisasterZone>();
+
+            object zoneLock = new object();
+            SystemLogger logger = new SystemLogger();
+            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
+            EmergencyGenerator emergencyGenerator = new EmergencyGenerator(zones, zoneLock, logger);
+
+            DisasterZoneMonitor zoneMonitor = new DisasterZoneMonitor(zones, zoneLock, logger);
+
+            DispatchProcessor dispatchProcessor = new DispatchProcessor(logger);
+
+            // EVENT SUBSCRIPTIONS
+            zoneMonitor.OnCriticalAlertTriggered += HandleCriticalAlert;
+            dispatchProcessor.OnMissionCompleted += HandleMissionCompleted;
+
+            Task emergencyTask = emergencyGenerator.RunAsync(cancellationTokenSource.Token);
+
+            Task monitoringTask = zoneMonitor.RunAsync(cancellationTokenSource.Token);
 
             bool running = true; //this will continue to display the menu until the user exits
+
             while (running)
             {
-                Console.Clear ();
+                Console.Clear();
                 Console.WriteLine("\n===============================================================");
                 Console.WriteLine("                      CrisisConnect Menu                       ");
                 Console.WriteLine("===============================================================");
@@ -66,10 +88,10 @@ namespace CrisisConnect
                 Console.WriteLine("Enter 4 to remove a team (DELETE): ");
                 Console.WriteLine("Enter 5 to dispatch or recall a team (INTERFACE: iDispatchAndRecall): ");
                 Console.WriteLine("Enter 6 to generate team status reports (INTERFACE: iStatusReport): ");
-                Console.WriteLine("Enter 7 to exit system: ");
+                Console.WriteLine("Enter 7 to view active disaster zones");
+                Console.WriteLine("Enter 8 to exit system: ");
                 Console.WriteLine("===============================================================");
-
-
+                
                 try
                 {
                     int menuinput = Convert.ToInt32(Console.ReadLine());
@@ -89,30 +111,85 @@ namespace CrisisConnect
                             DeleteTeam(team);
                             break;
                         case 5:
-                            DispatchOrRecallTeam(team);
+                            DispatchOrRecallTeam(
+                                team,
+                                zones,
+                                zoneLock,
+                                dispatchProcessor,
+                                cancellationTokenSource.Token
+                            );
                             break;
                         case 6:
                             GenerateStatusReports(team);
                             break;
                         case 7:
+                            DisplayDisasterZones(zones, zoneLock);
+                            break;
+                        case 8:
                             running = false;
-                            Console.WriteLine("Good bye, you have successfully exit the CrisisConnect system");
+                            cancellationTokenSource.Cancel();
+
+                            try
+                            {
+                                Task.WaitAll(new Task[] { emergencyTask, monitoringTask });
+                            }
+                            catch (AggregateException)
+                            {
+
+                            }
+
+                            logger.Log("CrisisConnect Shutdown");
                             break;
                         default:
                             Console.WriteLine("TRY AGAIN!!, You have entered an invlaid number that is not specified in the menu");
                             break;
                     }
                 }
-                catch (FormatException) 
+                catch (FormatException)
                 {
                     Console.WriteLine("'ERROR: input a numeric value");
                     Console.WriteLine("\nPress enter to try again");
                     Console.ReadLine();
                 }
             }
-            
 
+            try
+            {
+                Task.WaitAll(new Task[] { emergencyTask, monitoringTask });
+            }
+            catch (AggregateException)
+            {
+
+            }
         }
+
+        static void DisplayDisasterZones(List<DisasterZone> zones, object zoneLock)
+        {
+            Console.Clear();
+            Console.WriteLine("================================Active Disaster Zones================================");
+
+            lock (zoneLock)
+            {
+                if (zones.Count == 0)
+                {
+                    Console.WriteLine("No active disaster zones at the moment.");
+                }
+                else
+                {
+                    foreach (DisasterZone zone in zones)
+                    {
+                        Console.WriteLine(zone);
+                    }
+                }
+            }
+
+            Console.WriteLine("Press enter to return to the main menu");
+            Console.ReadLine();
+        }
+
+
+
+
 
         static void AddTeam(List<CrisisRescueSquad> team)
         {
@@ -160,7 +237,7 @@ namespace CrisisConnect
 
                     Console.WriteLine("\n'SUCCESS' Medical Team created successfully!");
                     Console.WriteLine(medicalTeam.getTeamDetail());
-                    
+
                 }
                 else if (addinput == 2)
                 {
@@ -243,7 +320,7 @@ namespace CrisisConnect
             {
                 Console.WriteLine("\nINPUT ERROR: Numeric values need to be enter");
             }
-            catch(ArgumentException exc)//catches when a number is given but its not withint the given range
+            catch (ArgumentException exc)//catches when a number is given but its not withint the given range
             {
                 Console.WriteLine($"VALIDATION ERROR: {exc.Message}");
             }
@@ -297,7 +374,7 @@ namespace CrisisConnect
                 int searchID = Convert.ToInt32(Console.ReadLine());
                 var foundTeam = team.FirstOrDefault(t => t.disasterTeamID == searchID);
 
-                if (foundTeam == null) 
+                if (foundTeam == null)
                 {
                     Console.WriteLine($"'ERROR' Team with ID '{searchID}' was not found.");
                 }
@@ -346,7 +423,7 @@ namespace CrisisConnect
             {
                 Console.WriteLine("'ERROR', ID must be a valid numeric value");
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
                 Console.WriteLine($"'ERROR', upadte has failed: {exc.Message}");
             }
@@ -365,49 +442,59 @@ namespace CrisisConnect
             Console.Write("\nEnter Disaster Team ID to remove: ");
 
             try
-                {
-                    int searchId = Convert.ToInt32(Console.ReadLine());
-                    var foundTeam = team.FirstOrDefault(t => t.disasterTeamID == searchId);//searches through all the teams for matching IDs get the first matching ID
+            {
+                int searchId = Convert.ToInt32(Console.ReadLine());
+                var foundTeam = team.FirstOrDefault(t => t.disasterTeamID == searchId);//searches through all the teams for matching IDs get the first matching ID
 
-                    if (foundTeam == null)
-                    {
-                        Console.WriteLine($"'ERROR' Team with ID '{searchId}' was not found.");
-                    }
-                    else if (foundTeam.status.Equals("deployed", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Domain rule protection you cannot remove a team if it has already been deployed
-                        Console.WriteLine($"'DENIED' Cannot remove '{foundTeam.teamName}' while actively deployed in the field!");
-                    }
-                    else
-                    {
-                        team.Remove(foundTeam);
-                        Console.WriteLine($"'SUCCESS' Team '{foundTeam.teamName}' (ID: {searchId}) has been removed.");
-                    }
-                }
-                catch (FormatException)
+                if (foundTeam == null)
                 {
-                    Console.WriteLine("'ERROR' ID must be a valid number.");
+                    Console.WriteLine($"'ERROR' Team with ID '{searchId}' was not found.");
                 }
-                catch (Exception ex)
+                else if (foundTeam.status.Equals("deployed", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine($"'ERROR' Removal failed: {ex.Message}");
+                    // Domain rule protection you cannot remove a team if it has already been deployed
+                    Console.WriteLine($"'DENIED' Cannot remove '{foundTeam.teamName}' while actively deployed in the field!");
                 }
+                else
+                {
+                    team.Remove(foundTeam);
+                    Console.WriteLine($"'SUCCESS' Team '{foundTeam.teamName}' (ID: {searchId}) has been removed.");
+                }
+            }
+            catch (FormatException)
+            {
+                Console.WriteLine("'ERROR' ID must be a valid number.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"'ERROR' Removal failed: {ex.Message}");
+            }
 
             Console.WriteLine("\nPress Enter to return to menu...");
             Console.ReadLine();
 
         }
 
-        static void DispatchOrRecallTeam(List<CrisisRescueSquad> team)
+        static void DispatchOrRecallTeam(
+            List<CrisisRescueSquad> team,
+            List<DisasterZone> zones,
+            object zoneLock,
+            DispatchProcessor dispatchProcessor,
+            CancellationToken cancellationToken)
         {
             Console.Clear();
-            Console.WriteLine("========================Dispatch/Recall============================");
+
+            Console.WriteLine(
+                "========================Dispatch/Recall============================"
+            );
 
             try
             {
                 if (team.Count == 0)
                 {
-                    Console.WriteLine("No rescue teams are currently registered");
+                    Console.WriteLine(
+                        "No rescue teams are currently registered."
+                    );
                 }
                 else
                 {
@@ -417,57 +504,182 @@ namespace CrisisConnect
                     }
 
                     Console.Write("\nEnter Disaster Team ID: ");
+
                     int searchId = Convert.ToInt32(Console.ReadLine());
-                    var foundTeam = team.FirstOrDefault(t => t.disasterTeamID == searchId);
+
+                    CrisisRescueSquad foundTeam =
+                        team.FirstOrDefault(
+                            t => t.disasterTeamID == searchId
+                        );
 
                     if (foundTeam == null)
                     {
-                        Console.WriteLine($"'ERROR' Team with ID '{searchId}' was not found");
+                        Console.WriteLine(
+                            $"'ERROR' Team with ID '{searchId}' was not found."
+                        );
                     }
-                    // Use 'is' keyword to verify interface implementation
                     else if (foundTeam is iDispatchAndRecall dispatchableTeam)
                     {
-                        Console.WriteLine("\nChoose Action:");
+                        Console.WriteLine();
+                        Console.WriteLine("Choose Action:");
                         Console.WriteLine("Enter 1 to Dispatch Team");
-                        Console.WriteLine("Enter 2 Recall Team");
+                        Console.WriteLine("Enter 2 to Recall Team");
                         Console.Write("Choice: ");
-                        int userChoice = Convert.ToInt32(Console.ReadLine());
+
+                        int userChoice =
+                            Convert.ToInt32(Console.ReadLine());
 
                         if (userChoice == 1)
                         {
-                            Console.Write("Enter target crisis location: ");
-                            string targetLoc = Console.ReadLine();
-                            dispatchableTeam.dispatch(targetLoc); // Interface method call
+                            // Block teams that are not currently available.
+                            if (foundTeam.status.Equals(
+                                    "maintenance",
+                                    StringComparison.OrdinalIgnoreCase) ||
+                                foundTeam.status.Equals(
+                                    "deployed",
+                                    StringComparison.OrdinalIgnoreCase))
+                            {
+                                throw new ResourceUnavailableException(
+                                    $"Team '{foundTeam.teamName}' cannot be dispatched " +
+                                    $"because its current status is '{foundTeam.status}'."
+                                );
+                            }
+
+                            DisasterZone selectedZone = null;
+
+                            lock (zoneLock)
+                            {
+                                if (zones.Count == 0)
+                                {
+                                    Console.WriteLine(
+                                        "No active disaster zones are currently available."
+                                    );
+                                }
+                                else
+                                {
+                                    Console.WriteLine();
+                                    Console.WriteLine(
+                                        "=========== Active Disaster Zones ==========="
+                                    );
+
+                                    foreach (DisasterZone zone in zones)
+                                    {
+                                        if (!zone.ResponseDispatched)
+                                        {
+                                            Console.WriteLine(zone);
+                                        }
+                                    }
+
+                                    Console.Write(
+                                        "\nEnter the Zone ID to respond to: "
+                                    );
+
+                                    int zoneId =
+                                        Convert.ToInt32(Console.ReadLine());
+
+                                    selectedZone =
+                                        zones.FirstOrDefault(
+                                            z => z.ZoneId == zoneId &&
+                                                 !z.ResponseDispatched
+                                        );
+                                }
+                            }
+
+                            if (selectedZone == null)
+                            {
+                                Console.WriteLine(
+                                    "'ERROR' Active disaster zone was not found."
+                                );
+                            }
+                            else
+                            {
+                                // High-severity incidents require a Specialist Team.
+                                if (selectedZone.Severity >= 8 &&
+                                    !(foundTeam is SpecalistTeam))
+                                {
+                                    throw new ResourceUnavailableException(
+                                        $"Zone {selectedZone.ZoneId} has severity " +
+                                        $"{selectedZone.Severity}/10. " +
+                                        "A Specialist Team is required for high-severity incidents."
+                                    );
+                                }
+
+                                // Medical emergencies require a Medical Team.
+                                if (selectedZone.DisasterType.Equals(
+                                        "Medical Emergency",
+                                        StringComparison.OrdinalIgnoreCase) &&
+                                    !(foundTeam is MedicalTeam))
+                                {
+                                    throw new ResourceUnavailableException(
+                                        $"Zone {selectedZone.ZoneId} is a medical emergency. " +
+                                        "A Medical Team must be dispatched."
+                                    );
+                                }
+
+                                Console.WriteLine(
+                                    $"\nDispatching '{foundTeam.teamName}' " +
+                                    $"to Zone {selectedZone.ZoneId}..."
+                                );
+
+                                Task.Run(
+                                    () => dispatchProcessor.DispatchAsync(
+                                        foundTeam,
+                                        selectedZone,
+                                        cancellationToken
+                                    )
+                                );
+                            }
                         }
                         else if (userChoice == 2)
                         {
-                            dispatchableTeam.recall(); // Interface method call
+                            dispatchableTeam.recall();
                         }
                         else
                         {
-                            Console.WriteLine("'ERROR' Invalid input, either enter 1 or 2");
+                            Console.WriteLine(
+                                "'ERROR' Invalid input. Enter either 1 or 2."
+                            );
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"'INFO' Team '{foundTeam.teamName}' does not support dispatch/recall");
+                        Console.WriteLine(
+                            $"'INFO' Team '{foundTeam.teamName}' " +
+                            "does not support dispatch/recall."
+                        );
                     }
                 }
             }
+            catch (ResourceUnavailableException ex)
+            {
+                Console.WriteLine();
+                Console.WriteLine(
+                    $"'RESOURCE UNAVAILABLE' {ex.Message}"
+                );
+            }
             catch (FormatException)
             {
-                Console.WriteLine("'ERROR' ID must be a numeric value.");
+                Console.WriteLine(
+                    "'ERROR' IDs and choices must be numeric values."
+                );
             }
-            catch (InvalidOperationException ex) // Catches low battery exception from DroneTeam!
+            catch (InvalidOperationException ex)
             {
-                Console.WriteLine($"'DISPATCH DENIED' {ex.Message}");
+                Console.WriteLine(
+                    $"'DISPATCH DENIED' {ex.Message}"
+                );
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"'ERROR' Command failed: {ex.Message}");
+                Console.WriteLine(
+                    $"'ERROR' Command failed: {ex.Message}"
+                );
             }
 
-            Console.WriteLine("\nPress Enter to return to menu...");
+            Console.WriteLine(
+                "\nPress Enter to return to menu..."
+            );
+
             Console.ReadLine();
         }
 
@@ -488,7 +700,6 @@ namespace CrisisConnect
 
                     foreach (CrisisRescueSquad squad in team)
                     {
-                        // Polymorphic Interface check: Only Medical and Drone teams implement iStatusReport
                         if (squad is iStatusReport reportableUnit)
                         {
                             Console.WriteLine($"[REPORT] {reportableUnit.Report()}");
@@ -498,17 +709,62 @@ namespace CrisisConnect
 
                     if (!foundReportable)
                     {
-                        Console.WriteLine("None of the registered teams support status reporting.");
+                        Console.WriteLine(
+                            "None of the registered teams support status reporting."
+                        );
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"'ERROR' Failed to generate reports: {ex.Message}");
+                Console.WriteLine(
+                    $"'ERROR' Failed to generate reports: {ex.Message}"
+                );
             }
 
             Console.WriteLine("\nPress Enter to return to menu...");
             Console.ReadLine();
+        }
+
+        static void HandleCriticalAlert(
+            int zoneId,
+            string disasterType,
+            string location,
+            int threatLevel)
+        {
+            lock (ConsoleLock.LockObject)
+            {
+                Console.WriteLine();
+                Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                Console.WriteLine("         CRITICAL EMERGENCY ALERT");
+                Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                Console.WriteLine($"Zone ID: {zoneId}");
+                Console.WriteLine($"Disaster: {disasterType}");
+                Console.WriteLine($"Location: {location}");
+                Console.WriteLine($"Threat Level: {threatLevel}%");
+                Console.WriteLine("Immediate response required!");
+                Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            }
+        }
+
+        static void HandleMissionCompleted(
+            int teamId,
+            string teamName,
+            int zoneId,
+            string status)
+        {
+            lock (ConsoleLock.LockObject)
+            {
+                Console.WriteLine();
+                Console.WriteLine("======================================");
+                Console.WriteLine("         MISSION EVENT RECEIVED");
+                Console.WriteLine("======================================");
+                Console.WriteLine($"Team ID: {teamId}");
+                Console.WriteLine($"Team: {teamName}");
+                Console.WriteLine($"Zone: {zoneId}");
+                Console.WriteLine($"Status: {status}");
+                Console.WriteLine("======================================");
+            }
         }
     }
 }
