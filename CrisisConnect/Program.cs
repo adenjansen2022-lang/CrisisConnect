@@ -67,6 +67,8 @@ namespace CrisisConnect
                 Console.WriteLine("Enter 5 to dispatch or recall a team (INTERFACE: iDispatchAndRecall): ");
                 Console.WriteLine("Enter 6 to generate team status reports (INTERFACE: iStatusReport): ");
                 Console.WriteLine("Enter 7 to exit system: ");
+                Console.WriteLine("===============================================================");
+
 
                 try
                 {
